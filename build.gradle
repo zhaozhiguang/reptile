@@ -14,7 +14,15 @@ subprojects {
     }
 
     dependencies {
+        //测试
         testCompile group: 'junit', name: 'junit', version: '4.12'
+        //网络请求
+        compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.4'
+        compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.4'
+        //日志
+        compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+        compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+        compile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
     }
 
     //编译JAVA文件时采用UTF-8

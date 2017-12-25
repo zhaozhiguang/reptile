@@ -1,5 +1,5 @@
-import com.zhaozhiguang.component.spider.FileParseResolver;
-import com.zhaozhiguang.component.spider.SimpleImageParseResolver;
+import com.zhaozhiguang.component.parse.FileParseResolver;
+import com.zhaozhiguang.component.parse.SimpleImageParseResolver;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;

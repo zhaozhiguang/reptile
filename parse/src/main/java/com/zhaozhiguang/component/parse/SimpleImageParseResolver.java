@@ -1,4 +1,4 @@
-package com.zhaozhiguang.component.spider;
+package com.zhaozhiguang.component.parse;
 
 import com.zhaozhiguang.component.common.FileUtils;
 import com.zhaozhiguang.component.common.PatternUtils;

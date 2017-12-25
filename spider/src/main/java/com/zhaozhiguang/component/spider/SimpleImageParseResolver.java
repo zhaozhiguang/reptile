@@ -66,15 +66,20 @@ public class SimpleImageParseResolver implements FileParseResolver,Runnable {
         this.latch = latch;
     }
 
+    public SimpleImageParseResolver(String dir){
+        this();
+        SimpleImageParseResolver.dir = dir;
+    }
+
     @Override
     public void parse(String url) {
         try {
             queue.put(url);
+            executorService.execute(this);
         } catch (InterruptedException e) {
             e.printStackTrace();
             logger.error("解析图片发生异常");
         }
-        executorService.execute(this);
     }
 
     @Override
@@ -83,7 +88,7 @@ public class SimpleImageParseResolver implements FileParseResolver,Runnable {
             try {
                 String url = queue.take();
                 FileUtils.copyURLToFile(new URL(url),new File(dir + UUID.randomUUID() + "."+ PatternUtils.getSuffixtoUrl(url)));
-                logger.debug("文件地址:{}",url);
+                logger.info("文件地址:{}",url);
             } catch (IOException e) {
                 e.printStackTrace();
                 logger.error("保存图片到文件发生异常-[12034]");

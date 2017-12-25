@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * 简单图片下载处理实现
@@ -26,6 +27,10 @@ public class SimpleImageParseResolver implements FileParseResolver,Runnable {
 
     private static String dir;
 
+    /**
+     * junit测试使用
+     * 由于junit不会管除他的主线程之外的线程结果,所以需要同步
+     */
     private CountDownLatch latch;
 
     static {
@@ -51,38 +56,42 @@ public class SimpleImageParseResolver implements FileParseResolver,Runnable {
 
     private ExecutorService executorService;
 
-    public SimpleImageParseResolver(BlockingQueue<String> queue){
-        this.queue = queue;
+    public SimpleImageParseResolver(){
+        this.queue = new LinkedBlockingDeque<>(100);
         executorService = CustomThreadPoolFactory.build(ThreadPoolType.FIXED_THREADPOOL);
-        executorService.execute(this);
     }
 
-    public SimpleImageParseResolver(BlockingQueue<String> queue, CountDownLatch latch){
-        this(queue);
+    public SimpleImageParseResolver(CountDownLatch latch){
+        this();
         this.latch = latch;
     }
 
     @Override
     public void parse(String url) {
         try {
-            FileUtils.copyURLToFile(new URL(url),new File(dir + UUID.randomUUID() + "."+ PatternUtils.getSuffixtoUrl(url)));
-            logger.debug("文件地址:{}",url);
-        } catch (IOException e) {
+            queue.put(url);
+        } catch (InterruptedException e) {
             e.printStackTrace();
-            logger.error("保存图片到文件发生异常-[12034]");
+            logger.error("解析图片发生异常");
         }
+        executorService.execute(this);
     }
 
     @Override
     public void run() {
-        while (true){
+        try {
             try {
-                parse(queue.take());
-                if(latch!=null) latch.countDown();
-            } catch (InterruptedException e) {
+                String url = queue.take();
+                FileUtils.copyURLToFile(new URL(url),new File(dir + UUID.randomUUID() + "."+ PatternUtils.getSuffixtoUrl(url)));
+                logger.debug("文件地址:{}",url);
+            } catch (IOException e) {
                 e.printStackTrace();
-                logger.error("保存图片发生异常-[12035]");
+                logger.error("保存图片到文件发生异常-[12034]");
             }
+            if(latch!=null) latch.countDown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            logger.error("保存图片发生异常-[12035]");
         }
     }
 }

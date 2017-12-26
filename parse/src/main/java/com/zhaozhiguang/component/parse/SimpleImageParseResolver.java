@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
 import java.util.UUID;
@@ -85,18 +86,19 @@ public class SimpleImageParseResolver implements FileParseResolver,Runnable {
     @Override
     public void run() {
         try {
-            try {
-                String url = queue.take();
-                FileUtils.copyURLToFile(new URL(url),new File(dir + UUID.randomUUID() + "."+ PatternUtils.getSuffixtoUrl(url)));
-                logger.info("文件地址:{}",url);
-            } catch (IOException e) {
-                e.printStackTrace();
-                logger.error("保存图片到文件发生异常-[12034]");
-            }
+            String url = queue.take();
+            FileUtils.copyURLToFile(new URL(url),new File(dir + UUID.randomUUID() + "."+ PatternUtils.getSuffixtoUrl(url)));
             if(latch!=null) latch.countDown();
+            logger.info("文件地址:{}",url);
         } catch (InterruptedException e) {
             e.printStackTrace();
             logger.error("保存图片发生异常-[12035]");
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            logger.error("保存图片到文件发生异常-[12034]");
+        } catch (IOException e) {
+            e.printStackTrace();
+            logger.error("保存图片到文件发生异常-[12033]");
         }
     }
 }

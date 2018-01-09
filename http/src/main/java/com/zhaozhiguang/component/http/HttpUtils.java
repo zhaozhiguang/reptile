@@ -1,10 +1,10 @@
 package com.zhaozhiguang.component.http;
 
+
 import org.apache.http.Consts;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -16,6 +16,7 @@ import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
@@ -41,8 +42,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * http请求工具类
- * @author zhaozhiguang
+ * http工具类
+ * @author zhiguang
  */
 public class HttpUtils {
 
@@ -60,7 +61,7 @@ public class HttpUtils {
 
     private static RequestConfig requestConfig;
 
-    private static String defaultcharset = "utf-8";
+    private static final String DEFAULT_CHARSET = "utf-8";
 
     static {
         SSLConnectionSocketFactory sslSF = null;
@@ -68,7 +69,7 @@ public class HttpUtils {
         try {
             KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
             //信任任何链接
-            SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(trustStore, (x509Certificates,s) -> { return true; }).build();
+            SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(trustStore, (x509Certificates, s) -> { return true; }).build();
             sslSF = new SSLConnectionSocketFactory(sslContext);
         } catch (KeyStoreException e) {
             throw new RuntimeException("秘钥文件不对");
@@ -120,25 +121,16 @@ public class HttpUtils {
      * @throws IOException
      */
     public static String get(String url, Map<String, String> queries) throws IOException {
-        String responseBody = "";
+        String responseBody = null;
         CloseableHttpClient httpClient = getHttpClient();
         StringBuilder sb = new StringBuilder(url);
-        appendUrlParam(queries, sb);
+        if(queries!=null) appendUrlParam(queries, sb);
         HttpGet httpGet = new HttpGet(sb.toString());
-        CloseableHttpResponse response = httpClient.execute(httpGet);
+        CloseableHttpResponse response = null;
         try {
+            response = httpClient.execute(httpGet);
             logger.info("Executing request " + httpGet.getRequestLine());
-            //请求数据
-            int status = response.getStatusLine().getStatusCode();
-            if (status == HttpStatus.SC_OK) {
-                HttpEntity entity = response.getEntity();
-                responseBody = EntityUtils.toString(entity, defaultcharset);
-                logger.debug(responseBody);
-                EntityUtils.consume(entity);
-            } else {
-                logger.info("http return status error:" + status);
-                throw new ClientProtocolException("Unexpected response status: " + status);
-            }
+            responseBody = getResponseBody(response);
         } catch (Exception ex) {
             logger.error("get请求时发生错误~");
         } finally {
@@ -155,10 +147,10 @@ public class HttpUtils {
      * @throws IOException
      */
     public static String post(String url, Map<String, String> queries, Map<String, String> params) throws IOException {
-        String responseBody = "";
+        String responseBody = null;
         CloseableHttpClient httpClient = getHttpClient();
         StringBuilder sb = new StringBuilder(url);
-        appendUrlParam(queries, sb);
+        if(queries!=null) appendUrlParam(queries, sb);
         //指定url,和http方式
         HttpPost httpPost = new HttpPost(sb.toString());
         //添加参数
@@ -172,17 +164,11 @@ public class HttpUtils {
         }
         httpPost.setEntity(new UrlEncodedFormEntity(nvps, Consts.UTF_8));
         //请求数据
-        CloseableHttpResponse response = httpClient.execute(httpPost);
+        CloseableHttpResponse response = null;
         try {
+            response = httpClient.execute(httpPost);
             logger.info("Executing request " + httpPost.getRequestLine());
-            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                HttpEntity entity = response.getEntity();
-                responseBody = EntityUtils.toString(entity, defaultcharset);
-                logger.debug(responseBody);
-                EntityUtils.consume(entity);
-            } else {
-                logger.info("http return status error:" + response.getStatusLine().getStatusCode());
-            }
+            responseBody = getResponseBody(response);
         } catch (Exception e) {
             logger.error("post请求时发生错误~");
         } finally {
@@ -200,11 +186,11 @@ public class HttpUtils {
      * @return
      * @throws Exception
      */
-    public static String postForm(String url, Map<String, String> queries, Map<String, String> params, Map<String, File> files) throws Exception {
-        String responseBody = "";
+    public static String postForm(String url, Map<String, String> queries, Map<String, String> params, Map<String, File> files) throws IOException {
+        String responseBody = null;
         CloseableHttpClient httpClient = getHttpClient();
         StringBuilder sb = new StringBuilder(url);
-        appendUrlParam(queries, sb);
+        if(queries!=null) appendUrlParam(queries, sb);
         //指定url,和http方式
         HttpPost httpPost = new HttpPost(sb.toString());
         MultipartEntityBuilder form = MultipartEntityBuilder.create();
@@ -227,26 +213,62 @@ public class HttpUtils {
         HttpEntity entity = form.build();
         httpPost.setEntity(entity);
         //请求数据
-        CloseableHttpResponse response = httpClient.execute(httpPost);
+        CloseableHttpResponse response = null;
         try {
+            response = httpClient.execute(httpPost);
             logger.info("Executing request " + httpPost.getRequestLine());
-            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                HttpEntity responseEntity = response.getEntity();
-                responseBody = EntityUtils.toString(responseEntity, defaultcharset);
-                logger.debug(responseBody);
-                EntityUtils.consume(responseEntity);
-            } else {
-                logger.info("http return status error:" + response.getStatusLine().getStatusCode());
-            }
+            responseBody = getResponseBody(response);
         } catch (Exception e) {
-            logger.error("post表单时发生错误~");
+            logger.error("post文件表单时发生错误~");
         } finally {
             response.close();
         }
         return responseBody;
     }
 
-    static void appendUrlParam(Map<String, String> queries, StringBuilder sb){
+    /**
+     * Json提交
+     * @param url 提交的请求链接
+     * @param queries 链接后面的参数
+     * @param data json数据
+     * @return
+     * @throws Exception
+     */
+    public static String postJson(String url, Map<String, String> queries, String data) throws IOException {
+        String responseBody = null;
+        CloseableHttpClient httpClient = getHttpClient();
+        StringBuilder sb = new StringBuilder(url);
+        appendUrlParam(queries, sb);
+        HttpPost httpPost = new HttpPost(sb.toString());
+        httpPost.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
+        CloseableHttpResponse response = null;
+        try {
+            response = httpClient.execute(httpPost);
+            logger.info("Executing request " + httpPost.getRequestLine());
+            responseBody = getResponseBody(response);
+        } catch (Exception e) {
+            logger.error("postJson表单时发生错误~");
+        } finally {
+            response.close();
+        }
+        return responseBody;
+    }
+
+    private static String getResponseBody(CloseableHttpResponse response) throws IOException {
+        String responseBody = null;
+        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+            HttpEntity responseEntity = response.getEntity();
+            responseBody = EntityUtils.toString(responseEntity, DEFAULT_CHARSET);
+            logger.debug(responseBody);
+            EntityUtils.consume(responseEntity);
+            return responseBody;
+        } else {
+            logger.info("http return status error:" + response.getStatusLine().getStatusCode());
+        }
+        return responseBody;
+    }
+
+    private static void appendUrlParam(Map<String, String> queries, StringBuilder sb){
         if (queries != null && queries.keySet().size() > 0) {
             boolean firstFlag = true;
             Iterator<Map.Entry<String, String>> iterator = queries.entrySet().iterator();
@@ -261,5 +283,4 @@ public class HttpUtils {
             }
         }
     }
-
 }

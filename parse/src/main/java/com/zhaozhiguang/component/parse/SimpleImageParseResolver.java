@@ -2,6 +2,7 @@ package com.zhaozhiguang.component.parse;
 
 import com.zhaozhiguang.component.common.FileUtils;
 import com.zhaozhiguang.component.common.PatternUtils;
+import com.zhaozhiguang.component.parse.xp1024.ListModel;
 import com.zhaozhiguang.component.threads.CustomThreadPoolFactory;
 import com.zhaozhiguang.component.threads.ThreadPoolType;
 import org.slf4j.Logger;
@@ -22,7 +23,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 /**
  * 简单图片下载处理实现
  */
-public class SimpleImageParseResolver implements FileParseResolver,Runnable {
+public class SimpleImageParseResolver implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(SimpleImageParseResolver.class);
 
@@ -53,7 +54,11 @@ public class SimpleImageParseResolver implements FileParseResolver,Runnable {
         }
     }
 
-    private BlockingQueue<String> queue;
+    public void setDir(String dir) {
+        SimpleImageParseResolver.dir = dir;
+    }
+
+    private BlockingQueue<ListModel> queue;
 
     private ExecutorService executorService;
 
@@ -72,10 +77,9 @@ public class SimpleImageParseResolver implements FileParseResolver,Runnable {
         SimpleImageParseResolver.dir = dir;
     }
 
-    @Override
-    public void parse(String url) {
+    public void parse(ListModel model) {
         try {
-            queue.put(url);
+            queue.put(model);
             executorService.execute(this);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -86,10 +90,9 @@ public class SimpleImageParseResolver implements FileParseResolver,Runnable {
     @Override
     public void run() {
         try {
-            String url = queue.take();
-            FileUtils.copyURLToFile(new URL(url),new File(dir + UUID.randomUUID() + "."+ PatternUtils.getSuffixtoUrl(url)));
+            ListModel model = queue.take();
+            FileUtils.copyURLToFile(new URL(model.getUrl()),new File(dir +model.getTitle()+"/"+ UUID.randomUUID() + "."+ PatternUtils.getSuffixtoUrl(model.getUrl())));
             if(latch!=null) latch.countDown();
-            logger.info("文件地址:{}",url);
         } catch (InterruptedException e) {
             e.printStackTrace();
             logger.error("保存图片发生异常-[12035]");

@@ -20,12 +20,16 @@ public class NetFriendFakeListResolver extends AbstractHtmlParseResolver {
         this.latch = latch;
     }
 
+    public NetFriendFakeListResolver(){
+
+    }
+
     @Override
     protected void task(String url) throws Exception {
         String s = HttpUtils.get(url, null);
         Matcher matcher = pattern.matcher(s);
         while(matcher.find()){
-            System.err.println("m:"+matcher.group(1)+"--"+matcher.group(2)+"--"+matcher.group(3));
+            results.add(new ListModel("http://w2.aqu1024.com/pw/"+matcher.group(1),matcher.group(3)));
         }
     }
 

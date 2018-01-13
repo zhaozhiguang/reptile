@@ -2,6 +2,5 @@ rootProject.name = 'reptile'
 include 'http'
 include 'parse'
 include 'threads'
-include 'spider'
 include 'common'
 

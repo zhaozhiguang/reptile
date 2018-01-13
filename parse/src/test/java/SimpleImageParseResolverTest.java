@@ -1,3 +1,5 @@
+import com.zhaozhiguang.component.common.LoadPropertiesUtils;
+import com.zhaozhiguang.component.common.ScannerUtils;
 import com.zhaozhiguang.component.parse.AbstractHtmlParseResolver;
 import com.zhaozhiguang.component.parse.FileParseResolver;
 import com.zhaozhiguang.component.parse.SimpleImageParseResolver;
@@ -45,7 +47,9 @@ public class SimpleImageParseResolverTest {
 
     public static void main(String[] args) throws InterruptedException {
         String url = "http://w2.aqu1024.com/pw/thread.php?fid=15";
+        if(args!=null&&args.length>0) url = args[0];
         AbstractHtmlParseResolver resolver = new NetFriendFakeListResolver();
+        resolver.setIgnoreUrls(ScannerUtils.scanUrl());
         resolver.setCallback(listModels -> {
             for(ListModel model:(List<ListModel>)listModels){
                 if(model!=null){

@@ -1,6 +1,7 @@
 package com.zhaozhiguang.component.parse;
 
 import com.zhaozhiguang.component.common.FileUtils;
+import com.zhaozhiguang.component.common.LoadPropertiesUtils;
 import com.zhaozhiguang.component.common.PatternUtils;
 import com.zhaozhiguang.component.parse.xp1024.ListModel;
 import com.zhaozhiguang.component.threads.CustomThreadPoolFactory;
@@ -36,22 +37,8 @@ public class SimpleImageParseResolver implements Runnable {
     private CountDownLatch latch;
 
     static {
-        Properties properties = new Properties();
-        InputStream inputStream = SimpleImageParseResolver.class.getResourceAsStream("/config.properties");
-        try {
-            properties.load(inputStream);
-            dir = properties.getProperty("down.image.file.dir");
-            if(dir==null) logger.error("下载图片的目录没有设置");
-        } catch (IOException e) {
-            e.printStackTrace();
-            logger.error("加载配置文件异常");
-        } finally {
-            try {
-                inputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        dir = LoadPropertiesUtils.load().getProperty("down.image.file.dir");
+        if(dir==null) logger.error("下载图片的目录没有设置");
     }
 
     public void setDir(String dir) {
